@@ -24,8 +24,6 @@ int main(int argc, char ** argv) {
 	init(&life, &argc, &argv);
 
 	for (count = 0; count < life.generations; count++) {
-		if (life.do_display)
-			do_draw(&life);
 
 		copy_bounds(&life);
 
@@ -33,7 +31,6 @@ int main(int argc, char ** argv) {
 
 		update_grid(&life);
 
-		throttle(&life);
 	}
 
 	cleanup(&life);

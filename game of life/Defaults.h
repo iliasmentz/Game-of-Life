@@ -14,20 +14,16 @@ Updated 2010, Andrew Fitz Gibbon and
 
 static const char * opts = "c:r:g:i:o:t::xh?";
 static const struct option long_opts[] = {
-	{ "columns", required_argument, NULL, 'c' },
-	{ "rows", required_argument, NULL, 'r' },
-	{ "gens", required_argument, NULL, 'g' },
-	{ "no-display", no_argument, NULL, 0 },
-	{ "display", no_argument, NULL, 'x' },
-	{ "output", required_argument, NULL, 'o' },
-	{ "input", required_argument, NULL, 'i' },
-	{ "throttle", optional_argument, NULL, 't' },
-	{ "help", no_argument, NULL, 'h' },
-	{ NULL, no_argument, NULL, 0 }
+	{ "columns", required_argument, 0, 'c' },
+	{ "rows", required_argument, 0, 'r' },
+	{ "gens", required_argument, 0, 'g' },
+	{ "output", required_argument, 0, 'o' },
+	{ "input", required_argument, 0, 'i' },
+	{ "help", no_argument, 0, 'h' },
+	{ "", no_argument, 0, 0 }
 };
 
 // Default parameters for the simulation
-const int DEFAULT_THROTTLE = 60;
 const int     DEFAULT_SIZE = 105;
 const int     DEFAULT_GENS = 1000;
 const double     INIT_PROB = 0.25;
@@ -44,38 +40,18 @@ const int DEFAULT_HEIGHT = 500;
 // Number of possible shades of gray
 #define NUM_GRAYSCALE 10
 
-// All the data needed for an X display
-struct display_t {
-	#ifndef NO_X11
-	Window    w;
-	GC        gc;
-	Display * dpy;
-	Pixmap    buffer;
-	Colormap  theColormap;
-	XColor    Xgrayscale[NUM_GRAYSCALE];
-
-	int deadColor;
-	int liveColor;
-	int width;
-	int height;
-	#endif
-};
 
 // All the data needed by an instance of Life
 struct life_t {
 	int  rank;
 	int  size;
-	int  throttle;
 	int  ncols;
 	int  nrows;
 	int  ** grid;
 	int  ** next_grid;
-	bool do_display;
 	int  generations;
 	char * infile;
 	char * outfile;
-
-	struct display_t disp;
 };
 
 enum CELL_STATES {
@@ -83,7 +59,7 @@ enum CELL_STATES {
 	ALIVE
 };
 
-// Cells become DEAD with more than UPPER_THRESH 
+// Cells become DEAD with more than UPPER_THRESH
 // or fewer than LOWER_THRESH neighbors
 const int UPPER_THRESH = 3;
 const int LOWER_THRESH = 2;
