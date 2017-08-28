@@ -1,10 +1,4 @@
 /*******************************************
-MPI Life 1.0
-Copyright 2002, David Joiner and
-  The Shodor Education Foundation, Inc.
-Updated 2010, Andrew Fitz Gibbon and
-  The Shodor Education Foundation, Inc.
-
 A C implementation of Conway's Game of Life.
 
 To run:

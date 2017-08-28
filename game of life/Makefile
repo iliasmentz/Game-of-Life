@@ -1,12 +1,3 @@
-###############################################################################
-# Makefile for the MPI version of Game of Life as included on the BCCD
-# (http://bccd.net)
-#
-# By default, include X display.
-#
-# Add NO_X11=1 to omit X libraries.
-###############################################################################
-
 #
 # Variables and Flags
 #
@@ -20,7 +11,7 @@ CFLAGS   +=
 
 
 PROGRAM   = Life
-SRCS      = Life.c
+SRCS      = Life.c  LifeFunctions.c
 OBJS      = $(SRCS:.c=.o)		# object file
 
 #
@@ -32,7 +23,7 @@ default: all
 all: $(PROGRAM)
 
 $(PROGRAM): $(OBJS)
-	$(CC) -o $(PROGRAM) $(SRCS) $(CFLAGS) $(LDFLAGS)
+	$(CC) -o $(PROGRAM) $(SRCS) $(CFLAGS)
 
 clean:
 	/bin/rm -f $(OBJS) $(PROGRAM)
