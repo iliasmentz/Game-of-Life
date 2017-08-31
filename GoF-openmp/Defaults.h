@@ -16,6 +16,7 @@ static const struct option long_opts[] = {
 };
 
 
+
 // All the data needed by an instance of Life
 struct life_t {
 	int  rank;
