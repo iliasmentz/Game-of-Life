@@ -3,8 +3,8 @@
 #include <math.h>
 
 // Default parameters for the simulation
-const int     DEFAULT_SIZE = 105;
-const int     DEFAULT_GENS = 1000;
+const int     DEFAULT_SIZE = 120;
+const int     DEFAULT_GENS = 10000;
 const double     INIT_PROB = 0.25;
 
 // Cells become DEAD with more than UPPER_THRESH
@@ -209,11 +209,11 @@ void copy_bounds (struct life_t * life) {
 			}
 
 		MPI_Waitall(8, recv_request, MPI_STATUSES_IGNORE);
-		// for( i = 0; i < 8 ; i++)
-		// {
-		// 	MPI_Request_free(&send_requests[i]);
-		// 	MPI_Request_free(&recv_request[i]);
-		// }
+		for( i = 0; i < 8 ; i++)
+		{
+		 	MPI_Request_free(&send_requests[i]);
+			// MPI_Request_free(&recv_request[i]);
+		}
 	}
 
 	// Copy sides locally to maintain periodic boundaries
@@ -242,16 +242,26 @@ void copy_bounds (struct life_t * life) {
 	update_grid()
 		Copies temporary values from next_grid into grid.
 */
-void update_grid (struct life_t * life) {
+int update_grid (struct life_t * life) {
 	int i,j;
 	int ncols = life->ncols;
 	int nrows = life->nrows;
 	int ** grid      = life->grid;
 	int ** next_grid = life->next_grid;
+	int diff = 0;
 
-	for (i = 0; i < ncols+2; i++)
-		for (j = 0; j < nrows+2; j++)
-			grid[i][j] = next_grid[i][j];
+	for (i = 1; i < ncols+1; i++)
+	{
+		for (j = 1; j < nrows+1; j++)
+		{
+			if(grid[i][j] != next_grid[i][j])
+			{
+				grid[i][j] = next_grid[i][j];
+				diff = 1;
+			}
+		}
+	}
+	return diff;
 }
 
 
