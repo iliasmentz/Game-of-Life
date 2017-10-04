@@ -1,10 +1,10 @@
 #include "Life.h"
 #include "Defaults.h"
-#include <omp.h>
+#include <math.h>
 
 // Default parameters for the simulation
-const int     DEFAULT_SIZE = 105;
-const int     DEFAULT_GENS = 1000;
+const int     DEFAULT_SIZE = 120;
+const int     DEFAULT_GENS = 10000;
 const double     INIT_PROB = 0.25;
 
 // Cells become DEAD with more than UPPER_THRESH
@@ -34,6 +34,18 @@ int init (struct life_t * life, int * c, char *** v) {
 	MPI_Comm_rank(MPI_COMM_WORLD, &life->rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &life->size);
 
+	int sqr = sqrt(life->size);
+	int dims[2]={sqr,sqr},
+	periods[2]={1,1}, reorder=0;
+
+	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &life->comm);
+	MPI_Cart_coords(life->comm, life->rank, 2, life->coords);
+
+	MPI_Type_vector(life->ncols, 1, 1, MPI_INT, &life->row);
+	MPI_Type_commit(&life->row);
+
+	MPI_Type_vector(life->nrows, 1, life->ncols+2, MPI_INT, &life->col);
+	MPI_Type_commit(&life->col);
 	seed_random(life->rank);
 
 	parse_args(life, argc, argv);
@@ -94,35 +106,119 @@ void copy_bounds (struct life_t * life) {
 	int size  = life->size;
 	int ncols = life->ncols;
 	int nrows = life->nrows;
-
+	int * coords = life->coords;
 	int ** grid = life->grid;
 
 	MPI_Status status;
-	int left_rank  = (rank-1+size) % size;
-	int right_rank = (rank+1) % size;
-
-	enum TAGS {
-		TOLEFT,
-		TORIGHT
-	};
 
 	// Some MPIs deadlock if a single process tries to communicate
 	// with itself
 	if (size != 1) {
 		// copy sides to neighboring processes
-		MPI_Sendrecv(grid[1], nrows+2, MPI_INT, left_rank, TOLEFT,
-			grid[ncols+1], nrows+2, MPI_INT, right_rank, TOLEFT,
-			MPI_COMM_WORLD, &status);
+		int sqr = sqrt(size);
+		int i, j;
+		int neighbor;
+		int neighcoord[2];
+		MPI_Request send_requests[8];
+		MPI_Request recv_request[8];
+			for (i = coords[0]-1; (i<=coords[0]+1 ); i++ )
+		  {
+		  	for (j = coords[1]-1; (j<=coords[1]+1 ); j++)
+		  	{
+		    	if(!(i == coords[0]) || !(j== coords[1]))
+		      {
 
-		MPI_Sendrecv(grid[ncols], nrows+2, MPI_INT, right_rank,
-			TORIGHT, grid[0], nrows+2, MPI_INT, left_rank,
-			TORIGHT, MPI_COMM_WORLD, &status);
+          	neighcoord[0] = i;
+		        neighcoord[1] = j;
+		        MPI_Cart_rank(life->comm, neighcoord, &neighbor);
+
+		        if(coords[0] == neighcoord[0] )
+						{
+		        	if (coords[1] == neighcoord[1]+1)
+							{
+								MPI_Isend(&grid[1][1], 1, life->col, neighbor, RIGHT , life->comm,&send_requests[0] );
+								//send of the first col
+								MPI_Irecv(&grid[1][0], 1, life->col, neighbor,LEFT, life->comm, &recv_request[0]);
+								//receive of the first column
+								// printf("Neighbor is %d, left\n", neighbor);
+							}
+		          else{
+		          	// printf("Neighbor is %d, right\n", neighbor);
+								MPI_Isend(&grid[1][ncols], 1, life->col, neighbor, LEFT , life->comm,&send_requests[1] );
+								//send of the first col
+								MPI_Irecv(&grid[1][ncols+1], 1, life->col, neighbor,RIGHT, life->comm, &recv_request[1]);
+								//recieve of the last column
+							}
+		        }
+		        else if ( coords[0] == neighcoord[0]+1 )
+						{
+		          	if ( coords[1] == neighcoord[1]+1 )
+								{
+									MPI_Isend(&grid[1][1], 1, MPI_INT, neighbor, UPLEFT , life->comm,&send_requests[2] );
+									//send of the first col
+									MPI_Irecv(&grid[0][0], 1, MPI_INT, neighbor,DOWNRIGHT, life->comm, &recv_request[2]);
+									//recieve of the last column
+		            	// printf("Neighbor is %d, Up left\n", neighbor);
+								}
+		            else if ( coords[1] == neighcoord[1])
+								{
+									MPI_Isend(&grid[1][1], 1, life->row, neighbor, UP , life->comm,&send_requests[3] );
+									//send of the last row
+									MPI_Irecv(&grid[0][1], 1, life->row, neighbor, DOWN, life->comm, &recv_request[3]);
+									//recieve of the first row
+		            	// printf("Neighbor is %d, Up \n", neighbor);
+								}
+								else
+								{
+									MPI_Isend(&grid[1][ncols], 1, MPI_INT, neighbor, UPRIGHT , life->comm,&send_requests[4] );
+									//send of the first col
+									MPI_Irecv(&grid[0][ncols+1], 1, MPI_INT, neighbor, DOWNLEFT, life->comm, &recv_request[4]);
+									//recieve of the last column
+		            	// printf("Neighbor is %d, Up right\n", neighbor);
+								}
+		          }
+		        else if( coords[0] == neighcoord[0]-1 )
+						{
+		          	if ( coords[1] == neighcoord[1]+1)
+								{
+									MPI_Isend(&grid[nrows][ncols], 1, MPI_INT, neighbor, DOWNLEFT , life->comm,&send_requests[5] );
+									//send of the first col
+									MPI_Irecv(&grid[nrows+1][ncols+1], 1, MPI_INT, neighbor, UPRIGHT, life->comm, &recv_request[5]);
+									//recieve of the last column
+		            	// printf("Neighbor is %d, Down left\n", neighbor);
+								}
+								else if ( coords[1] == neighcoord[1] )
+								{
+									MPI_Isend(&grid[nrows][1], 1, life->row, neighbor, DOWN , life->comm,&send_requests[6] );
+									//send of the first col
+									MPI_Irecv(&grid[nrows+1][1], 1, life->row, neighbor, UP, life->comm, &recv_request[6]);
+									//recieve of the last column
+		            	// printf("Neighbor is %d, Down\n", neighbor);
+								}
+								else
+								{
+									MPI_Isend(&grid[nrows][ncols], 1, MPI_INT, neighbor, DOWNRIGHT , life->comm,&send_requests[7] );
+									//send of the first col
+									MPI_Irecv(&grid[nrows+1][ncols+1], 1, MPI_INT, neighbor, UPLEFT, life->comm, &recv_request[7]);
+									//recieve of the last column
+		            	// printf("Neighbor is %d, Down right\n", neighbor);
+								}
+		         	}
+		      }
+		   }
+			}
+
+		MPI_Waitall(8, recv_request, MPI_STATUSES_IGNORE);
+		for( i = 0; i < 8 ; i++)
+		{
+		 	MPI_Request_free(&send_requests[i]);
+			// MPI_Request_free(&recv_request[i]);
+		}
 	}
 
 	// Copy sides locally to maintain periodic boundaries
 	// when there's only one process
 	if (size == 1) {
-#pragma omp parallel for
 		for (j = 0; j < nrows+2; j++) {
 			grid[ncols+1][j] = grid[1][j];
 			grid[0][j] = grid[ncols][j];
@@ -146,21 +242,31 @@ void copy_bounds (struct life_t * life) {
 	update_grid()
 		Copies temporary values from next_grid into grid.
 */
-void update_grid (struct life_t * life) {
+int update_grid (struct life_t * life) {
 	int i,j;
 	int ncols = life->ncols;
 	int nrows = life->nrows;
 	int ** grid      = life->grid;
 	int ** next_grid = life->next_grid;
+	int diff = 0;
 
-	for (i = 0; i < ncols+2; i++)
-		for (j = 0; j < nrows+2; j++)
-			grid[i][j] = next_grid[i][j];
+	for (i = 1; i < ncols+1; i++)
+	{
+		for (j = 1; j < nrows+1; j++)
+		{
+			if(grid[i][j] != next_grid[i][j])
+			{
+				grid[i][j] = next_grid[i][j];
+				diff = 1;
+			}
+		}
+	}
+	return diff;
 }
 
 
 /*
-	allocate_grids()
+	// allocate_grids()
 		Allocates memory for a 2D array of integers.
 */
 void allocate_grids (struct life_t * life) {
@@ -171,10 +277,14 @@ void allocate_grids (struct life_t * life) {
 	life->grid      = (int **) malloc(sizeof(int *) * (ncols+2));
 	life->next_grid = (int **) malloc(sizeof(int *) * (ncols+2));
 
-	for (i = 0; i < ncols+2; i++) {
-		life->grid[i]      = (int *) malloc(sizeof(int) * (nrows+2));
-		life->next_grid[i] = (int *) malloc(sizeof(int) * (nrows+2));
+	life->grid[0] = malloc(sizeof(int)*(ncols+2)*(nrows+2));
+	life->next_grid[0] = malloc(sizeof(int)*(ncols+2)*(nrows+2));
+	//Allocation in continuous spots
+	for ( i = 1; i < ncols+2; i++ ){
+		life->grid[i] = &life->grid[0][(i * (ncols+2))];
+		life->next_grid[i] = &life->next_grid[0][(i * (ncols+2))];
 	}
+
 }
 
 /*
@@ -229,8 +339,8 @@ void write_grid (struct life_t * life) {
 	int ncols   = life->ncols;
 	int nrows   = life->nrows;
 	int ** grid = life->grid;
-	if (life->outfile != NULL) {
 
+	if (life->outfile != NULL) {
 		if ((fd = fopen(life->outfile, "w")) == NULL) {
 			perror("Failed to open file for output");
 			exit(EXIT_FAILURE);
@@ -258,11 +368,12 @@ void free_grids (struct life_t * life) {
 	int i;
 	int ncols = life->ncols;
 
-	for (i = 0; i < ncols+2; i++) {
-		free(life->grid[i]);
-		free(life->next_grid[i]);
-	}
-
+	// for (i = 0; i < ncols+2; i++) {
+	// 	free(life->grid[i]);
+	// 	free(life->next_grid[i]);
+	// }
+	free(life->grid[0]);
+	free(life->next_grid[0]);
 	free(life->grid);
 	free(life->next_grid);
 }
@@ -310,6 +421,8 @@ void cleanup (struct life_t * life) {
 	write_grid(life);
 	free_grids(life);
 
+	MPI_Type_free(&life->col);
+	MPI_Type_free(&life->row);
 	MPI_Finalize();
 }
 
@@ -358,7 +471,6 @@ void parse_args (struct life_t * life, int argc, char ** argv) {
 				life->infile = optarg;
 				break;
 			case 'o':
-				printf("Pira file: %s\n", optarg );
 				life->outfile = optarg;
 				break;
 			case 'h':

@@ -7,7 +7,7 @@ CFLAGS   += -DMPI
 
 
 LIBS     += -lm
-CFLAGS   += -fopenmp
+CFLAGS   +=
 
 
 PROGRAM   = Life
@@ -23,7 +23,7 @@ default: all
 all: $(PROGRAM)
 
 $(PROGRAM): $(OBJS)
-	$(CC) -o $(PROGRAM) $(SRCS) $(CFLAGS)
+	$(CC) -o $(PROGRAM) $(SRCS) $(CFLAGS) $(LIBS)
 
 clean:
 	/bin/rm -f $(OBJS) $(PROGRAM)

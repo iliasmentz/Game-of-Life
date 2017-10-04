@@ -1,11 +1,3 @@
-/*******************************************
-MPI Life 1.0
-Copyright 2002, David Joiner and
-  The Shodor Education Foundation, Inc.
-Updated 2010, Andrew Fitz Gibbon and
-  The Shodor Education Foundation, Inc.
-*******************************************/
-
 #ifndef BCCD_LIFE_H
 #define BCCD_LIFE_H
 
@@ -24,7 +16,7 @@ Updated 2010, Andrew Fitz Gibbon and
 int               init (struct life_t * life, int * c, char *** v);
 void        eval_rules (struct life_t * life);
 void       copy_bounds (struct life_t * life);
-void       update_grid (struct life_t * life);
+int       update_grid (struct life_t * life);
 void    allocate_grids (struct life_t * life);
 void        init_grids (struct life_t * life);
 void        write_grid (struct life_t * life);

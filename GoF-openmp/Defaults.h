@@ -16,7 +16,6 @@ static const struct option long_opts[] = {
 };
 
 
-
 // All the data needed by an instance of Life
 struct life_t {
 	int  rank;
@@ -28,6 +27,10 @@ struct life_t {
 	int  generations;
 	char * infile;
 	char * outfile;
+	int coords[2];
+	MPI_Comm comm;
+	MPI_Datatype col;
+	MPI_Datatype row;
 };
 
 enum CELL_STATES {
@@ -35,6 +38,15 @@ enum CELL_STATES {
 	ALIVE
 };
 
-
+enum POSITIONS{
+	UPLEFT,
+	UP,
+	UPRIGHT,
+	RIGHT,
+	LEFT,
+	DOWNLEFT,
+	DOWN,
+	DOWNRIGHT
+};
 
 #endif
