@@ -295,9 +295,12 @@ void allocate_grids (struct life_t * life) {
 void init_grids (struct life_t * life) {
 	FILE * fd;
 	int i,j;
-
+	char * file;
 	if (life->infile != NULL) {
-		if ((fd = fopen(life->infile, "r")) == NULL) {
+		file = malloc(strlen(life->outfile)+life->rank%10+2);
+		sprintf(file, "%s%d", life->infile, life->rank);
+
+		if ((fd = fopen(file, "r")) == NULL) {
 			perror("Failed to open file for input");
 			exit(EXIT_FAILURE);
 		}
@@ -306,6 +309,7 @@ void init_grids (struct life_t * life) {
 			printf("File must at least define grid dimensions!\nExiting.\n");
 			exit(EXIT_FAILURE);
 		}
+
 	}
 
 	allocate_grids(life);
@@ -324,6 +328,8 @@ void init_grids (struct life_t * life) {
 		}
 
 		fclose(fd);
+
+		free(file);
 	} else {
 		randomize_grid(life, INIT_PROB);
 	}
@@ -341,7 +347,9 @@ void write_grid (struct life_t * life) {
 	int ** grid = life->grid;
 
 	if (life->outfile != NULL) {
-		if ((fd = fopen(life->outfile, "w")) == NULL) {
+		char * file = malloc(strlen(life->outfile)+life->rank%10+2);
+		sprintf(file, "%s%d", life->outfile, life->rank);
+		if ((fd = fopen(file, "w")) == NULL) {
 			perror("Failed to open file for output");
 			exit(EXIT_FAILURE);
 		}
@@ -356,6 +364,7 @@ void write_grid (struct life_t * life) {
 		}
 		fprintf(fd, "END \n");
 		fclose(fd);
+		free(file);
 	}
 }
 
@@ -435,7 +444,7 @@ void usage () {
 	printf("  -c|--columns number   Number of columns in grid. Default: %d\n", DEFAULT_SIZE);
 	printf("  -r|--rows number      Number of rows in grid. Default: %d\n", DEFAULT_SIZE);
 	printf("  -g|--gens number      Number of generations to run. Default: %d\n", DEFAULT_GENS);
-	printf("  -i|--input filename   Input file. See README for format. Default: none.\n");
+	//printf("  -i|--input filename   Input file. See README for format. Default: none.\n");
 	printf("  -o|--output filename  Output file. Default: none.\n");
 	printf("  -h|--help             This help page.\n");
 	printf("\nSee README for more information.\n\n");
