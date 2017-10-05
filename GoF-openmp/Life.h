@@ -14,9 +14,9 @@
 #include <unistd.h>
 
 int               init (struct life_t * life, int * c, char *** v);
-void        eval_rules (struct life_t * life);
+int       eval_rules (struct life_t * life);
 void       copy_bounds (struct life_t * life);
-int       update_grid (struct life_t * life);
+void      update_grid (struct life_t * life);
 void    allocate_grids (struct life_t * life);
 void        init_grids (struct life_t * life);
 void        write_grid (struct life_t * life);

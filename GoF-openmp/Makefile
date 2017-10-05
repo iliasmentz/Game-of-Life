@@ -3,7 +3,7 @@
 #
 
 CC        = mpicc
-CFLAGS   += -DMPI
+CFLAGS   += -fopenmp
 
 
 LIBS     += -lm
@@ -23,7 +23,7 @@ default: all
 all: $(PROGRAM)
 
 $(PROGRAM): $(OBJS)
-	$(CC) -o $(PROGRAM) $(SRCS) $(CFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -o $(PROGRAM) $(SRCS) $(LIBS)
 
 clean:
 	/bin/rm -f $(OBJS) $(PROGRAM)

@@ -60,7 +60,7 @@ int init (struct life_t * life, int * c, char *** v) {
 		Evaluate the rules of Life for each cell; count
 		neighbors and update current state accordingly.
 */
-void eval_rules (struct life_t * life) {
+int eval_rules (struct life_t * life) {
 	int i,j,k,l,neighbors;
 
 	int ncols = life->ncols;
@@ -68,6 +68,7 @@ void eval_rules (struct life_t * life) {
 
 	int ** grid      = life->grid;
 	int ** next_grid = life->next_grid;
+	int changes = 0;
 
 	for (i = 1; i <= ncols; i++) {
 		for (j = 1; j <= nrows; j++) {
@@ -86,8 +87,14 @@ void eval_rules (struct life_t * life) {
 				next_grid[i][j] = DEAD;
 			else if (grid[i][j] != DEAD || neighbors == SPAWN_THRESH)
 				next_grid[i][j] = grid[i][j]+1;
+			else
+				next_grid[i][j] = grid[i][j];
+
+			if(next_grid[i][j] == grid[i][j])
+				changes++;
 		}
 	}
+	return changes;
 }
 
 /*
@@ -242,26 +249,15 @@ void copy_bounds (struct life_t * life) {
 	update_grid()
 		Copies temporary values from next_grid into grid.
 */
-int update_grid (struct life_t * life) {
+void update_grid (struct life_t * life) {
 	int i,j;
 	int ncols = life->ncols;
 	int nrows = life->nrows;
 	int ** grid      = life->grid;
 	int ** next_grid = life->next_grid;
-	int diff = 0;
 
-	for (i = 1; i < ncols+1; i++)
-	{
-		for (j = 1; j < nrows+1; j++)
-		{
-			if(grid[i][j] != next_grid[i][j])
-			{
-				grid[i][j] = next_grid[i][j];
-				diff = 1;
-			}
-		}
-	}
-	return diff;
+	life->grid = next_grid;
+	life->next_grid = grid;
 }
 
 

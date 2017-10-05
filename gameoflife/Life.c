@@ -23,8 +23,8 @@ int main(int argc, char ** argv) {
 
 		copy_bounds(&life);
 
-		eval_rules(&life);
-		change = update_grid(&life);
+		change = eval_rules(&life);
+		update_grid(&life);
 		MPI_Allreduce(&change, &result,1,MPI_INT,MPI_SUM, life.comm);
 
 		MPI_Barrier(life.comm);
