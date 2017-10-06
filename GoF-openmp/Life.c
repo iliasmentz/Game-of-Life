@@ -20,7 +20,7 @@ int main(int argc, char ** argv) {
 	double t1, t2;
 	t1 = MPI_Wtime();
 	for (count = 0; count < life.generations; count++) {
-
+		//printf("Generation %d\n", count );
 		copy_bounds(&life);
 
 		result = eval_rules(&life);

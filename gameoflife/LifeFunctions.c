@@ -230,18 +230,20 @@ void copy_bounds (struct life_t * life) {
 			grid[ncols+1][j] = grid[1][j];
 			grid[0][j] = grid[ncols][j];
 		}
-	}
 
-	// copy corners
-	grid[0][0]             = grid[0][nrows];
-	grid[0][nrows+1]       = grid[0][1];
-	grid[ncols+1][0]       = grid[ncols+1][nrows];
-	grid[ncols+1][nrows+1] = grid[ncols+1][1];
 
-	// copy top and bottom
-	for (i = 1; i <= ncols; i++) {
-		grid[i][0]       = grid[i][nrows];
-		grid[i][nrows+1] = grid[i][1];
+		// copy corners
+		grid[0][0]             = grid[0][nrows];
+		grid[0][nrows+1]       = grid[0][1];
+		grid[ncols+1][0]       = grid[ncols+1][nrows];
+		grid[ncols+1][nrows+1] = grid[ncols+1][1];
+
+		// copy top and bottom
+		for (i = 1; i <= ncols; i++) {
+			grid[i][0]       = grid[i][nrows];
+			grid[i][nrows+1] = grid[i][1];
+		}
+
 	}
 }
 
