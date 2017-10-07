@@ -76,9 +76,8 @@ int eval_rules (struct life_t * life) {
 	int ** next_grid = life->next_grid;
 	int changes = 0;
 	int i,j,k,l;
-	#pragma omp parallel
-	{
-		#pragma omp for private(neighbors, j, k, l) reduction(+: changes) collapse(2)
+	#pragma omp parallel for private(neighbors, j, k, l) reduction(+: changes) collapse(2) num_threads(4)
+	// {
 			for (i = 1; i <= ncols; i++) {
 				for (j = 1; j <= nrows; j++) {
 					neighbors = 0;
@@ -103,7 +102,7 @@ int eval_rules (struct life_t * life) {
 						changes++;
 				}
 			}
-	 }
+	//  }
 	return changes;
 }
 

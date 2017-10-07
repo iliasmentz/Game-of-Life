@@ -38,14 +38,19 @@ int init (struct life_t * life, int * c, char *** v) {
 	int dims[2]={sqr,sqr},
 	periods[2]={1,1}, reorder=0;
 
+
+// MPI Cart Creation for the communication between the processes
 	MPI_Cart_create(MPI_COMM_WORLD, 2, dims, periods, reorder, &life->comm);
 	MPI_Cart_coords(life->comm, life->rank, 2, life->coords);
 
+//MPI Datatypes In Order to send Rows and Cols
 	MPI_Type_vector(life->ncols, 1, 1, MPI_INT, &life->row);
 	MPI_Type_commit(&life->row);
 
 	MPI_Type_vector(life->nrows, 1, life->ncols+2, MPI_INT, &life->col);
 	MPI_Type_commit(&life->col);
+
+
 	seed_random(life->rank);
 
 	parse_args(life, argc, argv);
@@ -90,7 +95,7 @@ int eval_rules (struct life_t * life) {
 			else
 				next_grid[i][j] = grid[i][j];
 
-			if(next_grid[i][j] == grid[i][j])
+			if(next_grid[i][j] != grid[i][j])
 				changes++;
 		}
 	}
@@ -102,9 +107,8 @@ int eval_rules (struct life_t * life) {
 		Copies sides, top, and bottom to their respective locations.
 		All boundaries are considered periodic.
 
-		In the MPI model, processes are aligned side-by-side.
-		Left and right sides are sent to neighboring processes.
-		Top and bottom are copied from the process's own grid.
+		In the MPI model, processes are aligned As Cartesian System.
+		All Sides are sent to neighboring processes.
 */
 void copy_bounds (struct life_t * life) {
 	int i,j;
@@ -142,73 +146,50 @@ void copy_bounds (struct life_t * life) {
 		        if(coords[0] == neighcoord[0] )
 						{
 		        	if (coords[1] == neighcoord[1]+1)
-							{
+							{ /* Send and Receive from process' Right*/
 								MPI_Isend(&grid[1][1], 1, life->col, neighbor, RIGHT , life->comm,&send_requests[0] );
-								//send of the first col
 								MPI_Irecv(&grid[1][0], 1, life->col, neighbor,LEFT, life->comm, &recv_request[0]);
-								//receive of the first column
-								// printf("Neighbor is %d, left\n", neighbor);
 							}
-		          else{
-		          	// printf("Neighbor is %d, right\n", neighbor);
+		          else
+							{ /* Send and Receive from process' Left*/
 								MPI_Isend(&grid[1][ncols], 1, life->col, neighbor, LEFT , life->comm,&send_requests[1] );
-								//send of the first col
 								MPI_Irecv(&grid[1][ncols+1], 1, life->col, neighbor,RIGHT, life->comm, &recv_request[1]);
-								//recieve of the last column
 							}
 		        }
 		        else if ( coords[0] == neighcoord[0]+1 )
 						{
 		          	if ( coords[1] == neighcoord[1]+1 )
-								{
+								{/* Send and Receive from process' Upleft*/
 									MPI_Isend(&grid[1][1], 1, MPI_INT, neighbor, UPLEFT , life->comm,&send_requests[2] );
-									//send of the first col
 									MPI_Irecv(&grid[0][0], 1, MPI_INT, neighbor,DOWNRIGHT, life->comm, &recv_request[2]);
-									//recieve of the last column
-		            	// printf("Neighbor is %d, Up left\n", neighbor);
 								}
 		            else if ( coords[1] == neighcoord[1])
-								{
+								{/* Send and Receive from process' Up*/
 									MPI_Isend(&grid[1][1], 1, life->row, neighbor, UP , life->comm,&send_requests[3] );
-									//send of the last row
 									MPI_Irecv(&grid[0][1], 1, life->row, neighbor, DOWN, life->comm, &recv_request[3]);
-									//recieve of the first row
-		            	// printf("Neighbor is %d, Up \n", neighbor);
 								}
 								else
-								{
+								{/* Send and Receive from process' UpRight*/
 									MPI_Isend(&grid[1][ncols], 1, MPI_INT, neighbor, UPRIGHT , life->comm,&send_requests[4] );
-									//send of the first col
 									MPI_Irecv(&grid[0][ncols+1], 1, MPI_INT, neighbor, DOWNLEFT, life->comm, &recv_request[4]);
-									//recieve of the last column
-		            	// printf("Neighbor is %d, Up right\n", neighbor);
 								}
 		          }
 		        else if( coords[0] == neighcoord[0]-1 )
 						{
 		          	if ( coords[1] == neighcoord[1]+1)
-								{
+								{/* Send and Receive from process' DownLeft*/
 									MPI_Isend(&grid[nrows][ncols], 1, MPI_INT, neighbor, DOWNLEFT , life->comm,&send_requests[5] );
-									//send of the first col
 									MPI_Irecv(&grid[nrows+1][ncols+1], 1, MPI_INT, neighbor, UPRIGHT, life->comm, &recv_request[5]);
-									//recieve of the last column
-		            	// printf("Neighbor is %d, Down left\n", neighbor);
 								}
 								else if ( coords[1] == neighcoord[1] )
-								{
+								{/* Send and Receive from process' Down*/
 									MPI_Isend(&grid[nrows][1], 1, life->row, neighbor, DOWN , life->comm,&send_requests[6] );
-									//send of the first col
 									MPI_Irecv(&grid[nrows+1][1], 1, life->row, neighbor, UP, life->comm, &recv_request[6]);
-									//recieve of the last column
-		            	// printf("Neighbor is %d, Down\n", neighbor);
 								}
 								else
-								{
+								{/* Send and Receive from process' DownRight*/
 									MPI_Isend(&grid[nrows][ncols], 1, MPI_INT, neighbor, DOWNRIGHT , life->comm,&send_requests[7] );
-									//send of the first col
 									MPI_Irecv(&grid[nrows+1][ncols+1], 1, MPI_INT, neighbor, UPLEFT, life->comm, &recv_request[7]);
-									//recieve of the last column
-		            	// printf("Neighbor is %d, Down right\n", neighbor);
 								}
 		         	}
 		      }
@@ -219,7 +200,6 @@ void copy_bounds (struct life_t * life) {
 		for( i = 0; i < 8 ; i++)
 		{
 		 	MPI_Request_free(&send_requests[i]);
-			// MPI_Request_free(&recv_request[i]);
 		}
 	}
 
@@ -249,7 +229,7 @@ void copy_bounds (struct life_t * life) {
 
 /*
 	update_grid()
-		Copies temporary values from next_grid into grid.
+		Replace values from next_grid into grid by changing the pointers.
 */
 void update_grid (struct life_t * life) {
 	int i,j;
@@ -442,7 +422,7 @@ void usage () {
 	printf("  -c|--columns number   Number of columns in grid. Default: %d\n", DEFAULT_SIZE);
 	printf("  -r|--rows number      Number of rows in grid. Default: %d\n", DEFAULT_SIZE);
 	printf("  -g|--gens number      Number of generations to run. Default: %d\n", DEFAULT_GENS);
-	//printf("  -i|--input filename   Input file. See README for format. Default: none.\n");
+	printf("  -i|--input filename   Input file. See README for format. Default: none.\n");
 	printf("  -o|--output filename  Output file. Default: none.\n");
 	printf("  -h|--help             This help page.\n");
 	printf("\nSee README for more information.\n\n");

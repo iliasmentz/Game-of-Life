@@ -1,6 +1,4 @@
 /*******************************************
-A C implementation of Conway's Game of Life.
-
 To run:
 ./Life [Rows] [Columns] [Generations] [Display]
 
