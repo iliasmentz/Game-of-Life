@@ -4,7 +4,7 @@
 
 // Default parameters for the simulation
 const int     DEFAULT_SIZE = 120;
-const int     DEFAULT_GENS = 10000;
+const int     DEFAULT_GENS = 1000;
 const double     INIT_PROB = 0.25;
 
 // Cells become DEAD with more than UPPER_THRESH
